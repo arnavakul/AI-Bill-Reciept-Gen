@@ -1,0 +1,77 @@
+# Python cache
+
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+
+# Virtual environment
+
+venv/
+.env/
+.venv/
+
+
+# Environment variables
+
+.env
+
+
+# Streamlit cache
+
+.streamlit/
+
+
+# Temporary files
+
+temp/
+uploads/
+
+
+# OS files
+
+.DS_Store
+Thumbs.db
+
+
+# IDE files
+
+.vscode/
+.idea/
+
+
+# Jupyter
+
+.ipynb_checkpoints/
+
+
+# Logs
+
+*.log
+
+
+# Build files
+
+build/
+dist/
+*.egg-info/
+
+
+# Secrets / API Keys
+
+config.json
+credentials.json
+secrets.toml
+
+
+# Generated images/results
+
+images/final/
+outputs/
+
+
+# Local databases
+
+*.db
+*.sqlite3
