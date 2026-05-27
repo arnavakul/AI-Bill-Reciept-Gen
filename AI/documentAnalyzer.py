@@ -19,8 +19,14 @@ client = genai.Client(
 #Image Validator to check if the uploaded image is validated or not 
 
 def validate_receipt(image_path):
+    
     uploaded_file = client.files.upload(
-        file=image_path
+
+        file=image_path,
+
+        config={
+            "mime_type": "image/jpeg"
+        }
     )
 
     prompt = """
@@ -63,42 +69,42 @@ def validate_receipt(image_path):
     return result =="YES"
 
 
-# Detect screenshot or camera image
+# # Detect screenshot or camera image
 
-def detect_image_type(image_path):
+# def detect_image_type(image_path):
 
-    uploaded_file = client.files.upload(
-        file=image_path
-    )
-
-
-    prompt = """
-    Determine whether this receipt image is:
-
-    - CAMERA_IMAGE
-    - SCREENSHOT
-
-    Rules:
-    - screenshots are digitally captured
-    - camera images contain lighting, shadows,
-      hands, perspective distortion or backgrounds
-
-    Return ONLY one label.
-    """
+#     uploaded_file = client.files.upload(
+#         file=image_path
+#     )
 
 
-    response = client.models.generate_content(
+#     prompt = """
+#     Determine whether this receipt image is:
 
-        model="gemini-3.1-flash-lite",
+#     - CAMERA_IMAGE
+#     - SCREENSHOT
 
-        contents=[
-            prompt,
-            uploaded_file
-        ]
-    )
+#     Rules:
+#     - screenshots are digitally captured
+#     - camera images contain lighting, shadows,
+#       hands, perspective distortion or backgrounds
+
+#     Return ONLY one label.
+#     """
 
 
-    return response.text.strip()
+#     response = client.models.generate_content(
+
+#         model="gemini-3.1-flash-lite",
+
+#         contents=[
+#             prompt,
+#             uploaded_file
+#         ]
+#     )
+
+
+#     return response.text.strip()
 
 
 
@@ -107,7 +113,12 @@ def detect_image_type(image_path):
 def validate_receipt_quality(image_path):
 
     uploaded_file = client.files.upload(
-        file=image_path
+
+    file=image_path,
+
+        config={
+            "mime_type": "image/jpeg"
+        }
     )
 
 

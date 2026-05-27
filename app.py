@@ -1,31 +1,34 @@
 import streamlit as st
-from AI.receiptEngine import run_engine
+import requests
 import tempfile
 import os
 import json
 
 st.set_page_config(
-    page_title="AI Receipt Extraction",
+    page_title="Receipt Information Extractor",
+    page_icon="📄",
     layout="wide"
 )
 
-st.title("AI Bill Receipt Extraction")
+FASTAPI_URL = "http://127.0.0.1:8000/extract-receipt"
 
-st.write(
-    "Upload a receipt image and extract structured data using Gemini Vision."
+st.title("📄 AI Financial Document Intelligence System")
+
+st.markdown(
+    """
+Upload a receipt or invoice image to extract structured financial data using Gemini Vision AI.
+"""
 )
 
-# Upload image
-uploaded_file = st.file_uploader(
-    "Upload Receipt Image",
-    type=["jpg", "jpeg", "png"]
-)
+# Sidebar settings
+with st.sidebar:
 
-# Fields input
-output_fields_input = st.text_area(
-    "Fields To Extract (one per line)",
-    height=200,
-    placeholder="""
+    st.header("Extraction Settings")
+
+    output_fields_input = st.text_area(
+        "Fields To Extract",
+        height=220,
+        placeholder="""
 store_name
 store_address
 date
@@ -38,10 +41,28 @@ tax
 total
 items
 """
+    )
+
+    st.markdown("---")
+
+    st.caption(
+        "Powered by Gemini Vision • FastAPI • Streamlit"
+    )
+
+# File upload
+uploaded_file = st.file_uploader(
+    "Upload Receipt / Invoice",
+    type=["jpg", "jpeg", "png"]
 )
 
-# Run extraction
-if st.button("Run Extraction"):
+# Run extraction button
+run_button = st.button(
+    "Run AI Extraction",
+    use_container_width=True
+)
+
+# Main workflow
+if run_button:
 
     if uploaded_file is None:
 
@@ -73,204 +94,229 @@ if st.button("Run Extraction"):
 
             temp_image_path = temp_file.name
 
-        # Show uploaded image
-        st.subheader("Uploaded Receipt")
+        # Layout columns
+        left_col, right_col = st.columns([1, 1])
 
-        st.image(
-            temp_image_path,
-            use_container_width=True
-        )
+        # Image preview
+        with left_col:
 
-        # Run engine
+            st.subheader("Uploaded Receipt")
+
+            st.image(
+                temp_image_path,
+                use_container_width=True
+            )
+
+        # API call
         with st.spinner(
-            "Running AI Receipt Engine..."
+            "Running AI Extraction..."
         ):
 
-            result = run_engine(
-                temp_image_path,
-                output_fields,
-                []
-            )
+            try:
 
-        # Validation failure
-        if "error" in result:
+                with open(
+                    temp_image_path,
+                    "rb"
+                ) as image_file:
 
-            st.error(
-                "Validation Failed"
-            )
+                    files = {
 
-            st.warning(
-                result["error"]
-            )
+                        "file": image_file
+                    }
 
-            # Show image type if available
-            if "image_type" in result:
+                    data = {
 
-                st.info(
-                    f"Image Type: {result['image_type']}"
+                        "output_fields": json.dumps(
+                            output_fields
+                        )
+                    }
+
+                    response = requests.post(
+                        FASTAPI_URL,
+                        files=files,
+                        data=data
+                    )
+
+                result = response.json()
+
+            except Exception as e:
+
+                st.error(
+                    "Failed to connect to FastAPI backend."
                 )
 
-            # Show quality details if available
-            if "quality_result" in result:
+                st.code(str(e))
 
-                quality_result = result["quality_result"]
+                st.stop()
+
+        # Right side results
+        with right_col:
+
+            # Validation failure
+            if "error" in result:
+
+                st.error(
+                    "Validation Failed"
+                )
+
+                st.warning(
+                    result["error"]
+                )
+
+                # Quality analysis
+                if "quality_result" in result:
+
+                    quality_result = result[
+                        "quality_result"
+                    ]
+
+                    st.subheader(
+                        "Receipt Quality Analysis"
+                    )
+
+                    st.metric(
+                        "Quality Score",
+                        f"{quality_result['score']}%"
+                    )
+
+                    if quality_result["issues"]:
+
+                        for issue in quality_result["issues"]:
+
+                            st.write(
+                                f"• {issue}"
+                            )
+
+            else:
+
+                st.success(
+                    "Validation Passed"
+                )
+
+                # Quality analysis
+                quality_result = result.get(
+                    "quality_result",
+                    {}
+                )
 
                 st.subheader(
-                    "Receipt Quality Analysis"
+                    "Receipt Quality"
                 )
 
                 st.metric(
                     "Quality Score",
-                    f"{quality_result['score']}%"
+                    f"{quality_result.get('score', 0)}%"
                 )
 
-                if quality_result["issues"]:
+                if quality_result.get("issues"):
 
                     st.warning(
-                        "Issues Detected:"
+                        "Detected Issues"
                     )
 
                     for issue in quality_result["issues"]:
 
                         st.write(
-                            f"- {issue}"
+                            f"• {issue}"
                         )
 
-        else:
+                else:
 
-            st.success(
-                "Validation Passed"
-            )
-
-            # Show image type
-            image_type = result.get(
-                "image_type",
-                "UNKNOWN"
-            )
-
-            st.info(
-                f"Image Type: {image_type}"
-            )
-
-            # Show quality result
-            quality_result = result.get(
-                "quality_result",
-                {}
-            )
-
-            st.subheader(
-                "Receipt Quality Analysis"
-            )
-
-            st.metric(
-                "Quality Score",
-                f"{quality_result.get('score', 0)}%"
-            )
-
-            if quality_result.get("issues"):
-
-                st.warning(
-                    "Issues Detected:"
-                )
-
-                for issue in quality_result["issues"]:
-
-                    st.write(
-                        f"- {issue}"
+                    st.success(
+                        "No major quality issues detected."
                     )
 
-            else:
-
-                st.success(
-                    "No quality issues detected."
+                # Vendor info
+                vendor_name = result.get(
+                    "vendor",
+                    "UNKNOWN"
                 )
 
-            # Vendor info
-            vendor_name = result.get(
-                "vendor",
-                "UNKNOWN"
-            )
-
-            vendor_prompt = result.get(
-                "vendor_prompt",
-                "No vendor-specific rules found."
-            )
-
-            st.info(
-                f"Detected Vendor: {vendor_name}"
-            )
-
-            # Vendor rules
-            st.subheader(
-                "Vendor-Specific Prompt"
-            )
-
-            st.text_area(
-                "Vendor Rules",
-                vendor_prompt,
-                height=150
-            )
-
-            # Gemini result
-            gemini_result = result.get(
-                "gemini_result"
-            )
-
-            st.subheader(
-                "Gemini Extraction"
-            )
-
-            try:
-
-                # Clean Gemini response
-                cleaned_result = gemini_result.strip()
-
-                cleaned_result = cleaned_result.replace(
-                    "```json",
-                    ""
+                st.subheader(
+                    "Vendor Detection"
                 )
 
-                cleaned_result = cleaned_result.replace(
-                    "```",
-                    ""
-                ).strip()
-
-                # Parse JSON
-                parsed_json = json.loads(
-                    cleaned_result
+                st.info(
+                    f"Detected Vendor: {vendor_name}"
                 )
 
-                # Show JSON
-                st.json(
-                    parsed_json
+                # Vendor prompt
+                vendor_prompt = result.get(
+                    "vendor_prompt",
+                    "No vendor-specific rules found."
                 )
 
-                # Show extracted items
-                if (
-                    "items" in parsed_json
-                    and
-                    parsed_json["items"]
+                with st.expander(
+                    "Vendor-Specific Prompt"
                 ):
 
-                    st.subheader(
-                        "Extracted Items"
+                    st.code(
+                        vendor_prompt
                     )
 
-                    st.table(
-                        parsed_json["items"]
-                    )
+        # Structured extraction
+        st.markdown("---")
 
-            except Exception as e:
+        st.subheader(
+            "Structured Financial Extraction"
+        )
 
-                st.error(
-                    "Failed to parse Gemini JSON output."
+        gemini_result = result.get(
+            "gemini_result"
+        )
+
+        try:
+
+            # Clean response
+            cleaned_result = gemini_result.strip()
+
+            cleaned_result = cleaned_result.replace(
+                "```json",
+                ""
+            )
+
+            cleaned_result = cleaned_result.replace(
+                "```",
+                ""
+            ).strip()
+
+            # Parse JSON
+            parsed_json = json.loads(
+                cleaned_result
+            )
+
+            # Show JSON
+            st.json(
+                parsed_json
+            )
+
+            # Items table
+            if (
+                "items" in parsed_json
+                and
+                parsed_json["items"]
+            ):
+
+                st.subheader(
+                    "Extracted Items"
                 )
 
-                st.code(
-                    gemini_result
+                st.dataframe(
+                    parsed_json["items"],
+                    use_container_width=True
                 )
 
-                print(e)
+        except Exception as e:
+
+            st.error(
+                "Failed to parse Gemini JSON output."
+            )
+
+            st.code(
+                gemini_result
+            )
+
+            print(e)
 
         # Delete temp image
         if os.path.exists(

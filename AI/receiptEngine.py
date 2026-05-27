@@ -8,7 +8,6 @@ from AI.documentAnalyzer import (
 
     validate_receipt_quality,
     validate_receipt,
-    detect_image_type
 )
 
 
@@ -20,11 +19,6 @@ def run_engine(
 
     document_rules
 ):
-
-    # Detect image type
-    image_type = detect_image_type(
-        image_path
-    )
 
 
     # Validate receipt quality
@@ -42,7 +36,6 @@ def run_engine(
 
             "quality_result": quality_result,
 
-            "image_type": image_type
         }
 
 
@@ -59,7 +52,7 @@ def run_engine(
 
             "error": "Uploaded image is not a valid receipt.",
 
-            "image_type": image_type,
+
 
             "quality_result": quality_result
         }
@@ -78,8 +71,6 @@ def run_engine(
 
     # Final response
     final_result = {
-
-        "image_type": image_type,
 
         "quality_result": quality_result,
 

@@ -57,7 +57,12 @@ def extract_receipt_data(
 
     # Upload image
     uploaded_file = client.files.upload(
-        file=image_path
+
+    file=image_path,
+
+        config={
+            "mime_type": "image/jpeg"
+        }
     )
 
     # Detect vendor

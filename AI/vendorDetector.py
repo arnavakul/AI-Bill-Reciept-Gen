@@ -12,7 +12,14 @@ client = genai.Client(
 
 def detect_vendor(image_path):
     
-    uploaded_file = client.files.upload(file = image_path)
+    uploaded_file = client.files.upload(
+
+    file=image_path,
+
+        config={
+            "mime_type": "image/jpeg"
+        }
+    )
     
     prompt = """
     
